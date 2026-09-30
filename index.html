@@ -76,7 +76,7 @@ const DEFAULT_ROOM='moni-bestie-2026';
 let mode=new URLSearchParams(location.search).get('mode')||'friend';
 let DB_URL=localStorage.getItem('bestie-db-url')||DEFAULT_DB_URL;
 let ROOM=localStorage.getItem('bestie-room')||DEFAULT_ROOM;
-let S={}; let current='timetable'; let syncTimer=null;
+let S={}; let current='timetable';
 
 function localKey(){return 'bestie-local-'+ROOM}
 function loadLocal(){try{S=JSON.parse(localStorage.getItem(localKey())||'{}')}catch(e){S={}}}
