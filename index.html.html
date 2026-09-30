@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Exam Study Tracker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f6fa;color:#20232b;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.app{max-width:1200px;margin:auto;padding:18px}header{background:#fff;border:1px solid #e5e7ed;border-radius:20px;padding:20px;position:sticky;top:8px;z-index:5;box-shadow:0 5px 20px #00000008}
+h1{margin:0;font-size:26px}.muted{color:#737985;font-size:13px;margin-top:4px}
+.stats{display:flex;gap:12px;margin-top:15px;flex-wrap:wrap}.stat{background:#f7f7ff;padding:11px 14px;border-radius:12px;min-width:130px}.stat b{display:block;font-size:18px}
+.bar{height:9px;background:#e9ebf1;border-radius:20px;margin-top:12px;overflow:hidden}.fill{height:100%;width:0;background:#5b5bd6;transition:.25s}
+.tabs{display:flex;gap:7px;overflow:auto;margin-top:15px}.tab{border:1px solid #dddfea;background:#fff;border-radius:10px;padding:9px 13px;font-weight:700;white-space:nowrap;cursor:pointer}.tab.active{background:#5b5bd6;color:white;border-color:#5b5bd6}
+.view{margin-top:17px}.day,.exam,.panel{background:#fff;border:1px solid #e5e7ed;border-radius:17px;margin-bottom:13px;overflow:hidden}
+.dayhead,.examhead{padding:13px 16px;background:#fafaff;border-bottom:1px solid #eceef3;display:flex;justify-content:space-between;align-items:center}.dayhead b,.examhead b{font-size:16px}
+.sessions{display:grid;grid-template-columns:repeat(4,1fr)}.session{padding:13px 14px;border-right:1px solid #eceef3;min-height:105px}.session:last-child{border:0}.session h3{font-size:11px;text-transform:uppercase;color:#7b808d;letter-spacing:.05em;margin:0 0 8px}
+.task{display:flex;gap:8px;font-size:13px;margin:8px 0;line-height:1.35;cursor:pointer}input{accent-color:#5b5bd6;width:16px;height:16px;flex:none}.done{text-decoration:line-through;color:#9aa0aa}
+.examrow{padding:15px 16px;display:grid;grid-template-columns:100px 1fr 1.5fr auto;gap:12px;align-items:center}.examrow+.examrow{border-top:1px solid #eee}.complete{font-size:12px;font-weight:700;color:#777}
+.revision{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.panel{padding:15px}.panel h2{font-size:16px;margin:0 0 5px}.panel p{font-size:12px;color:#737985;margin:0 0 12px}
+.smalltask{display:flex;gap:8px;font-size:13px;margin:8px 0;cursor:pointer}
+.search{width:100%;border:1px solid #dddfea;border-radius:11px;padding:10px;margin-bottom:12px}
+button.clear{border:0;background:#fff0f0;color:#a33;border-radius:9px;padding:7px 10px;cursor:pointer}
+@media(max-width:800px){.sessions{grid-template-columns:1fr 1fr}.revision{grid-template-columns:1fr}.examrow{grid-template-columns:80px 1fr auto}.examrow .after{grid-column:1/-1}}
+@media(max-width:480px){.sessions{grid-template-columns:1fr}.session{border-right:0;border-bottom:1px solid #eee}.examrow{grid-template-columns:70px 1fr}.examrow label{grid-column:1/-1}}
+</style></head>
+<body><div class="app">
+<header>
+<h1>📚 My Exam Study Tracker</h1><div class="muted">Oct 1–20 study plan • Tick each task as you finish it</div>
+<div class="stats"><div class="stat"><b id="all">0%</b><span class="muted">overall done</span></div><div class="stat"><b id="today">0%</b><span class="muted">today</span></div><div class="stat"><b id="exams">0/5</b><span class="muted">exams completed</span></div></div>
+<div class="bar"><div class="fill" id="fill"></div></div>
+<div class="tabs"><button class="tab active" onclick="tab('timetable',this)">🗓 Timetable</button><button class="tab" onclick="tab('revision',this)">🔁 Revision</button><button class="tab" onclick="tab('questions',this)">❓ Questions</button><button class="tab" onclick="tab('exams',this)">✅ Exams & Done</button></div>
+</header>
+<div id="view" class="view"></div>
+</div>
+<script>
+const days=[["Oct 1", [["Morning", ["Research: Introduction", "Research Problem", "Research Design"]], ["Afternoon", ["Neuro: Disorders", "Classification", "Assessment"]], ["Evening", ["CBR: Rehab", "Community", "Introduction"]], ["Night", ["Recall + short notes"]]]], ["Oct 2", [["Morning", ["Research: Sampling", "Measurement", "Data Collection"]], ["Afternoon", ["Neuro: Investigations", "Neuro-ophthalmology", "Vertigo"]], ["Evening", ["Community: Health & Disease", "Epidemiology"]], ["Night", ["Research + Neuro recall"]]]], ["Oct 3", [["Morning", ["Research: Sampling & Data Processing"]], ["Afternoon", ["Neuro: Cranial Nerves", "CVA"]], ["Evening", ["CBR: Principles", "Programme Planning"]], ["Night", ["Active recall"]]]], ["Oct 4", [["Morning", ["Research: Hypothesis", "Computers"]], ["Afternoon", ["Community: Communicable Diseases", "Public Health Admin"]], ["Evening", ["Neuro: Head Injury", "Higher Cortical Disorders"]], ["Night", ["Questions + diagrams"]]]], ["Oct 5", [["Morning", ["Biostatistics: Introduction", "Graphs", "Central Tendency"]], ["Afternoon", ["CBR: Disability", "Evaluation"]], ["Evening", ["Neuro: Movement", "Cerebellar Disorders"]], ["Night", ["Biostatistics revision"]]]], ["Oct 6", [["Morning", ["Biostatistics: Probability", "Sampling", "Significance Tests"]], ["Afternoon", ["Community: National Health Programmes", "Demography"]], ["Evening", ["Neuro: Spinal Cord", "Tumours"]], ["Night", ["Research numericals"]]]], ["Oct 7", [["Morning", ["Biostatistics: ANOVA", "Full revision"]], ["Afternoon", ["CBR: Government", "Social Work"]], ["Evening", ["Neuro: Infections", "MND"]], ["Night", ["Research self-test"]]]], ["Oct 8", [["Morning", ["CBR: Voluntary Organisations", "Rehabilitation Programmes"]], ["Afternoon", ["Community: Paediatrics", "Nutrition"]], ["Evening", ["Neuro: MS", "NMJ Disorders"]], ["Night", ["Neuro recall"]]]], ["Oct 9", [["Morning", ["CBR: Physiotherapist Role", "Paediatric Rehab"]], ["Afternoon", ["Community: Environment", "Hospital Waste"]], ["Evening", ["Neuro: Muscle Diseases", "Polyneuropathies"]], ["Night", ["CBR recall"]]]], ["Oct 10", [["Morning", ["CBR: Occupational Health", "Mental Health", "Health Education"]], ["Afternoon", ["Neuro: Peripheral Neuropathy", "Paediatric Neuro"]], ["Evening", ["Community: Disaster Management"]], ["Night", ["CBR self-test"]]]], ["Oct 11", [["Morning", ["Community: Occupational Health", "Mental Health", "Health Education"]], ["Afternoon", ["Neuro: Toxic/Metabolic Disorders", "Neurosurgery"]], ["Evening", ["Neuro-Physio: Assessment", "Neuro Approaches"]], ["Night", ["Neuro + Community recall"]]]], ["Oct 12", [["Morning", ["Neuro-Physio: Paediatric", "Brain/Spinal Cord"]], ["Afternoon", ["Community: Finish remaining topics"]], ["Evening", ["Research: Full first revision"]], ["Night", ["Research mock test"]]]], ["Oct 13", [["Morning", ["Neuro: Assessment", "Investigations", "Cranial Nerves", "CVA"]], ["Afternoon", ["Research: Methodology"]], ["Evening", ["CBR: Rehab", "Principles", "Planning"]], ["Night", ["Neuro questions"]]]], ["Oct 14", [["Morning", ["Neuro: Movement", "Cerebellar", "Spinal Cord", "Tumours"]], ["Afternoon", ["Community: Epidemiology", "National Programmes"]], ["Evening", ["Research: Biostatistics"]], ["Night", ["Recall without notes"]]]], ["Oct 15", [["Morning", ["Neuro: NMJ", "Muscle", "Polyneuropathy", "Peripheral Nerves"]], ["Afternoon", ["Neuro-Physio: Assessment", "Paediatrics"]], ["Evening", ["CBR: Govt", "NGOs", "Programmes"]], ["Night", ["Neuro questions"]]]], ["Oct 16", [["Morning", ["Full Neuro revision"]], ["Afternoon", ["Research weak topics"]], ["Evening", ["CBR weak topics"]], ["Night", ["Make Weak/Strong list"]]]], ["Oct 17", [["Morning", ["Neuro: All 24 topics rapid revision"]], ["Afternoon", ["Community", "Research"]], ["Evening", ["Neuro long answers"]]]], ["Oct 18", [["Morning", ["Neuro: Previous Questions", "Long Answers"]], ["Afternoon", ["Community", "CBR"]], ["Evening", ["Neuro short notes"]]]], ["Oct 19", [["Morning", ["Neuro: Rapid revision"]], ["Afternoon", ["Research: Biostatistics"]], ["Evening", ["CBR: Long Answers"]], ["Night", ["Community revision"]]]], ["Oct 20", [["Morning", ["Neuro final revision"]], ["Afternoon", ["Community final revision"]], ["Evening", ["Neuro-Physio revision"]], ["Night", ["Research formulas", "Key topics"]]]]]; const exams=[["23 Oct", "Neurology", "Oct 21–22 → Neurology"], ["28 Oct", "Community Medicine", "Oct 24–27 → Community"], ["30 Oct", "Neuro-Physiotherapy", "Oct 29 → Neuro-Physio"], ["3 Nov", "Community Physiotherapy / CBR", "Oct 31–Nov 2 → CBR"], ["5 Nov", "Research Methodology & Biostatistics", "Nov 4 → Research"]];
+const KEY='exam-study-tracker-v2'; let S=JSON.parse(localStorage.getItem(KEY)||'{}');
+function save(){localStorage.setItem(KEY,JSON.stringify(S)); update();}
+function key(...x){return x.join('|')}
+function check(k){return !!S[k]}
+function cb(k,text,cls=''){return `<label class="task ${cls}"><input type="checkbox" ${check(k)?'checked':''} onchange="toggle('${k.replaceAll("'","\\'")}',this.checked)"><span>${text}</span></label>`}
+function toggle(k,v){S[k]=v;save(); render(current)}
+let current='timetable';
+function tab(name,el){current=name;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');render(name)}
+function render(name){let v=document.getElementById('view'); if(name==='timetable')renderTime(v); if(name==='revision')renderRevision(v); if(name==='questions')renderQuestions(v); if(name==='exams')renderExams(v); update()}
+function renderTime(v){
+v.innerHTML=days.map(([date,sessions],di)=>{
+let n=0,d=0;sessions.forEach(([s,items],si)=>items.forEach((x,i)=>{n++;d+=check(key('topic',di,si,i))?1:0}));
+return `<section class="day"><div class="dayhead"><b>${date}</b><span class="complete">${d}/${n} done</span></div><div class="sessions">${sessions.map(([s,items],si)=>`<div class="session"><h3>${s}</h3>${items.map((x,i)=>cb(key('topic',di,si,i),x,check(key('topic',di,si,i))?'done':'')).join('')}</div>`).join('')}</div></section>`
+}).join('')
+}
+const revisionSubjects=[
+['Neuro','Full revision • rapid revision • final revision',['Assessment + Investigations','Cranial Nerves + CVA','Movement + Cerebellar','Spinal Cord + Tumours','NMJ + Muscle + Polyneuropathy','Previous Questions + Long Answers']],
+['Community','Revision before 28 Oct exam',['Epidemiology','National Health Programmes','Paediatrics + Nutrition','Communicable Diseases','Occupational + Mental Health','Environment + Disaster Management']],
+['CBR','Revision before 3 Nov exam',['Rehab + Principles + Planning','Disability + Evaluation','Government + NGOs + Programmes','Voluntary Organisations','Physiotherapist Role + Paediatric Rehab','Long Answers']],
+['Research','Revision before 5 Nov exam',['Methodology','Sampling + Data Collection','Hypothesis + Computers','Biostatistics','Numericals + Formulas','Mock Test']]
+];
+function renderRevision(v){
+v.innerHTML='<div class="revision">'+revisionSubjects.map((a,si)=>`<section class="panel"><h2>${a[0]}</h2><p>${a[1]}</p>${a[2].map((x,i)=>cb(key('rev',si,i),x,check(key('rev',si,i))?'done':'')).join('')}</section>`).join('')+'</div>'
+}
+function renderQuestions(v){
+v.innerHTML=`<section class="panel"><h2>❓ Revision / Questions checklist</h2><p>Use this exactly like the “Questions” column in your original plan.</p>${['Active recall','Questions + diagrams','Research numericals','Research self-test','CBR self-test','Research mock test','Neuro questions','Recall without notes','Neuro long answers','Neuro short notes','CBR long answers','Community revision'].map((x,i)=>cb(key('q',i),x,check(key('q',i))?'done':'')).join('')}</section>`
+}
+function renderExams(v){
+v.innerHTML='<section class="exam"><div class="examhead"><b>📅 Exam timetable</b><span class="complete">Tick after you actually finish the exam</span></div>'+exams.map((e,i)=>`<div class="examrow"><b>${e[0]}</b><strong>${e[1]}</strong><span class="after">${e[2]}</span><label class="task"><input type="checkbox" ${check(key('exam',i))?'checked':''} onchange="toggle('${key('exam',i)}',this.checked)"><span>Exam Completed ✓</span></label></div>`).join('')+'</section><section class="panel"><button class="clear" onclick="resetAll()">Reset all progress</button></section>'
+}
+function update(){
+let total=0,done=0;days.forEach(([d,s],di)=>s.forEach(([x,it],si)=>it.forEach((q,i)=>{total++;if(check(key('topic',di,si,i)))done++})));
+let pct=total?Math.round(done/total*100):0;document.getElementById('all').textContent=pct+'%';document.getElementById('fill').style.width=pct+'%';
+let day=new Date().getDate(), idx=days.findIndex(x=>x[0]==='Oct '+day),dt=0,dd=0;if(idx>=0)days[idx][1].forEach(([x,it],si)=>it.forEach((q,i)=>{dt++;if(check(key('topic',idx,si,i)))dd++}));document.getElementById('today').textContent=(dt?Math.round(dd/dt*100):0)+'%';
+let ec=exams.filter((e,i)=>check(key('exam',i))).length;document.getElementById('exams').textContent=ec+'/5';
+}
+function resetAll(){if(confirm('Reset every checkbox?')){S={};save();render(current)}}
+render('timetable');
+</script></body></html>
