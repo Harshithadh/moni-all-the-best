@@ -74,8 +74,8 @@ function resetAll(){if(confirm('Reset every checkbox?')){S={};save();render(curr
 const DEFAULT_DB_URL='https://bestie-exam-tracker-default-rtdb.asia-southeast1.firebasedatabase.app';
 const DEFAULT_ROOM='moni-bestie-2026';
 let mode=new URLSearchParams(location.search).get('mode')||'friend';
-let DB_URL=localStorage.getItem('bestie-db-url')||DEFAULT_DB_URL;
-let ROOM=localStorage.getItem('bestie-room')||DEFAULT_ROOM;
+let DB_URL=DEFAULT_DB_URL;
+let ROOM=DEFAULT_ROOM;
 let S={}; let current='timetable';
 
 function localKey(){return 'bestie-local-'+ROOM}
@@ -99,14 +99,18 @@ async function syncFromCloud(){
 }
 async function syncToCloud(){
   if(mode==='view') return;
-  if(!DB_URL){setStatus('🟡 Local only — add the Firebase database URL in Share');return}
-  try{await dbPut();setStatus('🟢 Saved online • '+new Date().toLocaleTimeString())}catch(e){setStatus('🔴 Online save failed — local progress is safe')}
+  try{
+    await dbPut();
+    setStatus('🟢 Saved online • '+new Date().toLocaleTimeString());
+  }catch(e){
+    setStatus('🔴 Online save failed — local progress is safe');
+  }
 }
 function setStatus(t){document.getElementById('status').textContent=t}
 function save(){saveLocal();update();syncToCloud()}
 function key(...x){return x.join('|')}
 function check(k){return !!S[k]}
-function cb(k,text,cls=''){let disabled=mode==='view'?'disabled':'';return `<label class="task ${cls}"><input type="checkbox" ${check(k)?'checked':''} ${disabled} onchange="toggle(''+${JSON.stringify(k)}+'',this.checked)"><span>${text}</span></label>`}
+function cb(k,text,cls=''){let disabled=mode==='view'?'disabled':'';return `<label class="task ${cls}"><input type="checkbox" ${check(k)?'checked':''} ${disabled} onchange='toggle(${JSON.stringify(k)},this.checked)'><span>${text}</span></label>`}
 function toggle(k,v){if(mode==='view')return;S[k]=v;save();render(current)}
 function tab(name,el){current=name;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');render(name)}
 function render(name){let v=document.getElementById('view'); if(name==='timetable')renderTime(v); if(name==='revision')renderRevision(v); if(name==='questions')renderQuestions(v); if(name==='exams')renderExams(v); if(name==='share')renderShare(v); update()}
@@ -114,12 +118,36 @@ function renderTime(v){v.innerHTML=days.map(([date,sessions],di)=>{let n=0,d=0;s
 function renderRevision(v){v.innerHTML='<div class="revision">'+revisionSubjects.map((a,si)=>`<section class="panel"><h2>${a[0]}</h2><p>${a[1]}</p>${a[2].map((x,i)=>cb(key('rev',si,i),x,check(key('rev',si,i))?'done':'')).join('')}</section>`).join('')+'</div>'}
 function renderQuestions(v){v.innerHTML=`<section class="panel"><h2>❓ Revision / Questions checklist</h2><p>Use this like the Questions column in your original plan.</p>${['Active recall','Questions + diagrams','Research numericals','Research self-test','CBR self-test','Research mock test','Neuro questions','Recall without notes','Neuro long answers','Neuro short notes','CBR long answers','Community revision'].map((x,i)=>cb(key('q',i),x,check(key('q',i))?'done':'')).join('')}</section>`}
 function renderExams(v){v.innerHTML='<section class="exam"><div class="examhead"><b>📅 Exam timetable</b><span class="complete">Tick after you actually finish the exam</span></div>'+exams.map((e,i)=>`<div class="examrow"><b>${e[0]}</b><strong>${e[1]}</strong><span class="after">${e[2]}</span><label class="task"><input type="checkbox" ${check(key('exam',i))?'checked':''} ${mode==='view'?'disabled':''} onchange="toggle('${key('exam',i)}',this.checked)"><span>Exam Completed ✓</span></label></div>`).join('')+'</section>'+(mode==='friend'?'<section class="panel"><button class="clear" onclick="resetAll()">Reset all progress</button></section>':'')}
-function renderShare(v){v.innerHTML=`<section class="setup"><h2>👀 Shared Progress</h2><p>This version stores the checklist online so you can view the same progress from another device.</p><div class="mode"><button class="${mode==='friend'?'primary':'secondary'}" onclick="setMode('friend')">👩‍🎓 Bestie mode (can tick)</button><button class="${mode==='view'?'primary':'secondary'}" onclick="setMode('view')">👀 Viewer mode (read-only)</button></div><div class="notice"><b>Firebase database URL:</b> Paste your Realtime Database URL here. Example: <code>https://your-project-default-rtdb.firebaseio.com</code><br>Only non-sensitive study progress should be stored here.</div><label>Database URL</label><input id="dburl" type="text" value="${DB_URL}" placeholder="https://...firebaseio.com"><label>Shared room name</label><input id="room" type="text" value="${ROOM}" placeholder="moni-bestie-2026"><button class="primary" onclick="connect()">Save & connect</button> <button class="secondary" onclick="syncFromCloud()">Refresh from cloud</button><div class="notice"><b>Viewer link:</b><br><span id="viewerLink">${location.origin+location.pathname}?mode=view</span><br><small>Once connected, share this same website link with <b>?mode=view</b> for read-only viewing. Both people must use the same room and database URL.</small></div></section>`}
+function renderShare(v){
+  v.innerHTML=`<section class="setup">
+    <h2>👀 Shared Progress</h2>
+    <p>This tracker is already connected to the shared online database.</p>
+    <div class="mode">
+      <button class="${mode==='friend'?'primary':'secondary'}" onclick="setMode('friend')">👩‍🎓 Bestie mode (can tick)</button>
+      <button class="${mode==='view'?'primary':'secondary'}" onclick="setMode('view')">👀 Viewer mode (read-only)</button>
+    </div>
+    <div class="notice">
+      <b>🟢 Automatic connection enabled</b><br>
+      Database: <code>bestie-exam-tracker</code><br>
+      Shared room: <code>moni-bestie-2026</code><br>
+      No Save & Connect button is needed.
+    </div>
+    <div class="notice">
+      <b>Bestie:</b> choose Bestie mode and tick your tasks. They are saved online automatically.<br><br>
+      <b>Viewer:</b> use the read-only link below to see the same progress.
+    </div>
+    <button class="secondary" onclick="syncFromCloud()">🔄 Refresh from cloud</button>
+    <div class="notice"><b>Viewer link:</b><br>
+      <span id="viewerLink">${location.origin+location.pathname}?mode=view</span>
+    </div>
+  </section>`
+}
 function setMode(m){mode=m;render('share');setStatus(m==='view'?'👀 Viewer mode • read-only':'👩‍🎓 Bestie mode • can tick tasks');syncFromCloud()}
-function connect(){DB_URL=cleanDbUrl(document.getElementById('dburl').value);ROOM=document.getElementById('room').value.trim()||DEFAULT_ROOM;localStorage.setItem('bestie-db-url',DB_URL);localStorage.setItem('bestie-room',ROOM);loadLocal();syncFromCloud();render(current)}
+function connect(){loadLocal();syncFromCloud();}
 function update(){let total=0,done=0;days.forEach(([d,s],di)=>s.forEach(([x,it],si)=>it.forEach((q,i)=>{total++;if(check(key('topic',di,si,i)))done++})));let pct=total?Math.round(done/total*100):0;document.getElementById('all').textContent=pct+'%';document.getElementById('fill').style.width=pct+'%';let day=new Date().getDate(),idx=days.findIndex(x=>x[0]==='Oct '+day),dt=0,dd=0;if(idx>=0)days[idx][1].forEach(([x,it],si)=>it.forEach((q,i)=>{dt++;if(check(key('topic',idx,si,i)))dd++}));document.getElementById('today').textContent=(dt?Math.round(dd/dt*100):0)+'%';let ec=exams.filter((e,i)=>check(key('exam',i))).length;document.getElementById('exams').textContent=ec+'/5'}
 function resetAll(){if(mode==='view')return;if(confirm('Reset every checkbox?')){S={};save();render(current)}}
 loadLocal();
-if(DB_URL) syncFromCloud(); else setStatus('🟡 Setup needed • open Share to connect online');
+syncFromCloud();
 render('timetable');
+setInterval(syncFromCloud,3000);
 </script></body></html>
